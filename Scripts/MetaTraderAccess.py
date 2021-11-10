@@ -1,14 +1,10 @@
 from datetime import datetime
 
-import MetaTrader5 as mt5
-from pandas.plotting import register_matplotlib_converters
-
-register_matplotlib_converters()
-
 import Dat.Account as Account
+from Scripts.Constants import *
 
 
-class AdminMt:
+class MetaTraderAccess:
     def __init__(self):
         self.terminalSetup()
         self.lotBase = 0.01
@@ -45,45 +41,45 @@ class AdminMt:
             timeout=10
         )
         if not authorized:
-            print("failed to connect at account #{}, error code: {}".format(account.login, mt5.last_error()))
-            raise
+            raise ValueError("failed to connect at account #{}, error code: {}".format(account.login, mt5.last_error()))
 
     def printAccountInfo(self):
         # display trading account data 'as is'
         print(mt5.account_info())
         # display trading account data in the form of a list
-        print("Show account_info()._asdict():")
-        account_info_dict = mt5.account_info()._asdict()
+        account_info_dict = mt5.account_info().asdict()
         for prop in account_info_dict:
             print("  {}={}".format(prop, account_info_dict[prop]))
 
-    def orderOpen(self, symbol="USDJPY", orderType=mt5.ORDER_TYPE_BUY, stopLoss=None, takeProfit=None) -> bool:
+    def orderOpen(self, symbol: object = "USDJPY", orderType=None, stopLoss=None, takeProfit=None) -> bool:
 
-        if not self.orderSetup(symbol):
-            return False
+        self.checkSetup()
+
+        if orderType is None:
+            raise ValueError("have to set buy or sell.")
 
         lot = self.lotBase
 
-        if orderType == mt5.ORDER_TYPE_BUY:
+        if orderType == otBuy:
             price = mt5.symbol_info_tick(symbol).ask
-        elif orderType == mt5.ORDER_TYPE_SELL:
+        elif orderType == otSell:
             price = mt5.symbol_info_tick(symbol).bid
         else:
-            print("not supported.")
-            return False
+            raise ValueError("not supported.")
 
         point = mt5.symbol_info(symbol).point
         deviation = self.deviationPermitted
-        request = {}
-        request["action"] = mt5.TRADE_ACTION_DEAL
-        request["symbol"] = symbol
-        request["volume"] = lot
-        request["type"] = orderType
-        request["price"] = price
-        request["deviation"] = deviation
-        request["magic"] = 234000
-        request["comment"] = "python script open"
-        request["type_time"] = mt5.ORDER_TIME_GTC
+        request = {
+            "action": mt5.TRADE_ACTION_DEAL,
+            "symbol": symbol,
+            "volume": lot,
+            "type": orderType,
+            "price": price,
+            "deviation": deviation,
+            # "magic": 234000, # no need now.
+            "comment": "python script open",
+            "type_time": mt5.ORDER_TIME_GTC,
+        }
 
         if stopLoss is not None:
             request["sl"] = price - float(stopLoss) * point
@@ -93,18 +89,19 @@ class AdminMt:
         # send a trading request
         result = mt5.order_send(request)
         # check the execution result
-        print("1. order_send(): by {} {} lots at {} with deviation={} points".format(symbol, lot, price, deviation));
+        print("1. order_send(): by {} {} lots at {} with deviation={} points".format(symbol, lot, price, deviation))
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             print("2. order_send failed, retcode={}".format(result.retcode))
             # request the result as a dictionary and display it element by element
-            result_dict = result._asdict()
-            for field in result_dict.keys():
-                print("   {}={}".format(field, result_dict[field]))
+            resultDict = result.asdict()
+            for field in resultDict.keys():
+                print("   {}={}".format(field, resultDict[field]))
                 # if this is a trading request structure, display it element by element as well
                 if field == "request":
-                    traderequest_dict = result_dict[field]._asdict()
-                    for tradereq_filed in traderequest_dict:
-                        print("       traderequest: {}={}".format(tradereq_filed, traderequest_dict[tradereq_filed]))
+                    tradeRequestDict = resultDict[field].asdict()
+                    for tradeReqFiled in tradeRequestDict:
+                        print("       traderequest: {}={}".format(tradeReqFiled, tradeRequestDict[tradeReqFiled]))
+            print("can't send.")
             return False
 
         print("2. order_send done, ", result)
@@ -114,21 +111,16 @@ class AdminMt:
 
     def orderClose(self, position: mt5.TradePosition = None) -> bool:
 
-        if not self.orderSetup():
-            return False
+        self.checkSetup()
 
-        self.orderSetup()
-        # create a close request
-
-        if position.type == mt5.ORDER_TYPE_BUY:
+        if position.type == otBuy:
             price = mt5.symbol_info_tick(position.symbol).bid
-            ordertype=mt5.ORDER_TYPE_SELL
-        elif position.type == mt5.ORDER_TYPE_SELL:
+            ordertype = otSell
+        elif position.type == otSell:
             price = mt5.symbol_info_tick(position.symbol).ask
-            ordertype=mt5.ORDER_TYPE_BUY
+            ordertype = otBuy
         else:
-            print("can't setup close. ")
-            return False
+            raise ValueError("can't setup close. ")
 
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
@@ -137,7 +129,7 @@ class AdminMt:
             "type": ordertype,
             "position": position.ticket,
             "price": price,
-            "magic":position.magic,
+            # "magic": position.magic, # no need now.
             "deviation": self.deviationPermitted,
             "comment": "python script close",
             "type_time": mt5.ORDER_TIME_GTC,
@@ -155,12 +147,11 @@ class AdminMt:
 
         return True
 
-    def orderSetup(self, symbol=None):
+    def checkSetup(self, symbol=None):
 
         # establish connection to the MetaTrader 5 terminal
         if not mt5.initialize():
-            print("initialize() failed, error code =", mt5.last_error())
-            return False
+            raise ValueError("initialize() failed, error code =", mt5.last_error())
 
         if symbol is None:
             return True
@@ -168,15 +159,13 @@ class AdminMt:
         # prepare the buy request structure
         symbol_info = mt5.symbol_info(symbol)
         if symbol_info is None:
-            print(symbol, "not found, can not call order_check()")
-            return False
+            raise ValueError(symbol, "not found, can not call order_check()")
 
         # if the symbol is unavailable in MarketWatch, add it
         if not symbol_info.visible:
             print(symbol, "is not visible, trying to switch on")
             if not mt5.symbol_select(symbol, True):
-                print("symbol_select({}}) failed, exit", symbol)
-                return False
+                raise ValueError("symbol_select({}) failed, exit".format(symbol))
         return True
 
     def orderGet(self):
@@ -194,7 +183,7 @@ class AdminMt:
         if positions is None:
             print("No positions , error code={}".format(mt5.last_error()))
             return None
-        elif len(positions)==0:
+        elif len(positions) == 0:
             print("not have positions.")
 
         return positions
@@ -203,23 +192,24 @@ class AdminMt:
 
         positions = self.positionGet()
 
-        ret = True
+        returns = []
 
         for position in positions:  # type:mt5.TradePosition
             success = self.positionClose(position)
-            if not success:
-                print("error {}".format(position))
-                ret = False
+            returns.append([success, position])
 
-        return ret
+        return returns
 
     def positionClose(self, position: mt5.TradePosition) -> bool:
         if position is None:
             return False
 
-        success = self.orderClose(position)
+        retError = self.orderClose(position)
+        if retError is not None:
+            print(retError)
+            return False
 
-        return success
+        return True
 
     def getTicks(self, pair: str):
         nowTime = datetime.utcnow()
@@ -237,13 +227,13 @@ class AdminMt:
 
 
 if __name__ == '__main__':
-    am = AdminMt()
+    am = MetaTraderAccess()
     am.login()
 
     # rate = am.getRates("USDJPY", mt5.TIMEFRAME_H1)
     # print(rate)
 
-    # am.orderOpen()
+    # am.orderOpen(orderType=otSell)
 
     # poss = am.positionGet()
     # for i in poss:

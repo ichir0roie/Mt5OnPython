@@ -1,4 +1,4 @@
-# EaPutConstant
+# Mt5OnPython
 
 
 pythonでMetaTraderに挑戦
