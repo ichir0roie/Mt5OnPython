@@ -43,13 +43,15 @@ class MetaTraderAccess:
         if not authorized:
             raise ValueError("failed to connect at account #{}, error code: {}".format(account.login, mt5.last_error()))
 
-    def printAccountInfo(self):
+    def getAccountInfo(self):
         # display trading account data 'as is'
         print(mt5.account_info())
         # display trading account data in the form of a list
-        account_info_dict = mt5.account_info().asdict()
-        for prop in account_info_dict:
-            print("  {}={}".format(prop, account_info_dict[prop]))
+        account_info_dict = mt5.account_info()._asdict()
+        # for prop in account_info_dict:
+        #     print("{}={}".format(prop, account_info_dict[prop]))
+
+        return account_info_dict
 
     def orderOpen(self, symbol: object = "USDJPY", orderType=None, stopLoss=None, takeProfit=None) -> bool:
 
@@ -93,12 +95,12 @@ class MetaTraderAccess:
         if result.retcode != mt5.TRADE_RETCODE_DONE:
             print("2. order_send failed, retcode={}".format(result.retcode))
             # request the result as a dictionary and display it element by element
-            resultDict = result.asdict()
+            resultDict = result._asdict()
             for field in resultDict.keys():
                 print("   {}={}".format(field, resultDict[field]))
                 # if this is a trading request structure, display it element by element as well
                 if field == "request":
-                    tradeRequestDict = resultDict[field].asdict()
+                    tradeRequestDict = resultDict[field]._asdict()
                     for tradeReqFiled in tradeRequestDict:
                         print("       traderequest: {}={}".format(tradeReqFiled, tradeRequestDict[tradeReqFiled]))
             print("can't send.")
