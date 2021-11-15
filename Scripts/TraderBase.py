@@ -64,7 +64,7 @@ class TraderBase:
     def run(self, times: int = 10000000, printMode: bool = True):
         self.runLoop = True
         while self.runLoop:
-            if times >= self.market.ticks:
+            if times <= self.market.ticks:
                 self.runLoop = False
 
             for i in range(self.oneRunTicks):
