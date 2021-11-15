@@ -1,0 +1,6 @@
+marketPrice         :{price}
+marketTicks         :{ticks}
+balance             :{balance}
+profitTotal         :{profitTotal}
+positionsTotal      :{positionsTotal}
+positionsHistory    :{positionsHistory}

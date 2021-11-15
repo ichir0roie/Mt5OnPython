@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import Dat.Account as Account
-from Scripts.Constants import *
+from Scripts.Commons import *
 
 
 class MetaTraderAccess:
