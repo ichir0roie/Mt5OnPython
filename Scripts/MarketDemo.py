@@ -1,12 +1,19 @@
 from Scripts.Commons import *
 
+import math
 
 import random
+
+# import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 class MarketDemo:
     def __init__(self):
         self.price = 100.0
+        self.energy=0
+
         self.ticks = 0
+        self.history=[]
 
         self.positions = []
         self.closedPositions=0
@@ -19,9 +26,7 @@ class MarketDemo:
 
     def onTick(self):
 
-        change=float(random.randint(-1000,1000))/1000*0.05
-        self.price+=change
-        self.ticks+=1
+        self.forward(1)
 
         newClosedProfit=0
         newPositions=[]
@@ -40,6 +45,35 @@ class MarketDemo:
         self.positions=newPositions
 
         return newClosedProfit
+
+    def getNextTick(self)->float:
+        newEnergy=float(random.randint(-1000,1000))*0.001*0.01
+
+        return newEnergy
+
+
+    def forward(self,times:int):
+        for time in range(times):
+            self.history.append(self.price)
+            self.price += self.getNextTick()
+            self.ticks += 1
+
+    def printMarket(self):
+        print(self.history)
+        x=[i for i in range(len(self.history))]
+        plt.plot(x,self.history)
+        plt.show()
+
+    def testGetTick(self):
+        times=100000
+        y=[self.getNextTick() for i in range(times)]
+        x=[i for i in range(times)]
+        plt.plot(x,y)
+        plt.show()
+
+    def testMarketTicks(self):
+        self.forward(1000000)
+        self.printMarket()
 
 
     def openPosition(self, orderType, volume, takeProfit, stopLoss):
@@ -120,3 +154,8 @@ class Position:
         self.open = True
 
         return
+
+if __name__ == '__main__':
+    mkt=MarketDemo()
+    mkt.testMarketTicks()
+    # mkt.testGetTick()

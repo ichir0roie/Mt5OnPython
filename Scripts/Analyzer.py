@@ -1,38 +1,49 @@
 import Algorithms.randomWork
+import Scripts.TraderBase
 
 
 class Analyzer:
     def __init__(self):
+
+        self.resultList=[]
+
         return
 
-    def setupAlgo(self, baseVolume, tp, st):
-        self.algoRw = Algorithms.randomWork.Trader()
-        self.algoRw.takeProfit = tp
-        self.algoRw.stopLoss = st
-        self.algoRw.lotsBase = baseVolume
 
-    def testRun(self, times, baseVoluem, tp, st):
-        self.setupAlgo(baseVoluem, tp, st)
-        self.algoRw.run(times, False)
+    def testRun(self, times, baseVolume, tp, st):
+        td = Algorithms.randomWork.Trader()
+        td.takeProfit = tp
+        td.stopLoss = st
+        td.lotsBase = baseVolume
 
-    def judgeModel(self):
+        td.run(times, False)
 
-        if self.algoRw.balanceNow >= self.algoRw.balanceInit:
+        return td
+
+    def judgeModel(self,td:Scripts.TraderBase.TraderBase):
+
+        if td.balanceNow >= td.balanceInit:
             return True
 
         return False
 
-    def testLooper(self):
+    def testRun(self):
         resultList=[]
-        for volumeRange in range(1, 10, 1):
-            volume = volumeRange * 0.01
-            for tp in range(50,1000,50):
-                for st in range(50,1000,50):
-                    self.testRun(20000,baseVoluem=volume,tp=tp,st=st)
-                    result=[volume,tp,st,self.algoRw.balanceNow]
+        for volumeRange in range(10):
+            volume = (volumeRange+1) * 0.01
+            for tpRange in range(11):
+                tp=tpRange*0.1
+                for stRange in range(11):
+                    st=stRange*0.1
+                    td=self.testRun(10000, baseVolume=volume, tp=tp, st=st)
+                    result=[volume,tp,st,td.balanceNow,td.market.closedPositions,td.market.positionsTotal()]
                     resultList.append(result)
                     print(result)
+        self.resultList=resultList
+
+    # def testAnalyze(self):
+
 
 if __name__ == '__main__':
     al=Analyzer()
-    al.testLooper()
+    al.testRun()

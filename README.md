@@ -21,3 +21,8 @@ https://www.mql5.com/en/docs/integration/python_metatrader5
 
 + テスト実施に至るまでのフレームワークを作るのがめんどくさい
 + mt5と同様の精度のテスト環境を作成するのはとても大変そう。
+
+# ランダムウォーク生成
+
+[参考1、ムズすぎ](https://www.zenginkyo.or.jp/fileadmin/res/news/news250722_7.pdf)
+
