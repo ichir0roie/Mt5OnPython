@@ -1,4 +1,5 @@
-import Algorithms.randomWork
+
+
 import Scripts.TraderBase
 
 
@@ -10,8 +11,11 @@ class Analyzer:
         return
 
 
-    def testRun(self, times, baseVolume, tp, st):
-        td = Algorithms.randomWork.Trader()
+    def setupTrader(self,
+                    td:Scripts.TraderBase.TraderBase,
+                    times, baseVolume, tp, st):
+        # td = Algorithms.randomWork.Trader()
+        # td=Algorithms.trendFollow
         td.takeProfit = tp
         td.stopLoss = st
         td.lotsBase = baseVolume
@@ -27,7 +31,7 @@ class Analyzer:
 
         return False
 
-    def testRun(self):
+    def testRun(self,td):
         resultList=[]
         for volumeRange in range(10):
             volume = (volumeRange+1) * 0.01
@@ -35,8 +39,11 @@ class Analyzer:
                 tp=tpRange*0.1
                 for stRange in range(11):
                     st=stRange*0.1
-                    td=self.testRun(10000, baseVolume=volume, tp=tp, st=st)
-                    result=[volume,tp,st,td.balanceNow,td.market.closedPositions,td.market.positionsTotal()]
+                    td.__init__()
+                    td.market.historyMode=False
+                    td=self.setupTrader(td,500, baseVolume=volume, tp=tp, st=st)
+                    td.market.closePositionAll()
+                    result=[volume,tp,st,td.market.balanceNow,td.market.closedPositions,td.market.positionsTotal()]
                     resultList.append(result)
                     print(result)
         self.resultList=resultList
@@ -46,4 +53,5 @@ class Analyzer:
 
 if __name__ == '__main__':
     al=Analyzer()
-    al.testRun()
+    import Algorithms.both
+    al.testRun(Algorithms.both.Trader())

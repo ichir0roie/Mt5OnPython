@@ -6,8 +6,6 @@ import Scripts.MarketDemo
 
 class TraderBase:
     def __init__(self):
-        self.balanceInit = 1000000.0
-        self.balanceNow = self.balanceInit
 
         self.market = Scripts.MarketDemo.MarketDemo()
 
@@ -35,13 +33,8 @@ class TraderBase:
     def onTick(self):
         return
 
-    def onTickMarket(self):
-        newClosedProfit = self.market.onTick()
-        if newClosedProfit != 0:
-            self.balanceNow += newClosedProfit
-
     def runOneTick(self):
-        self.onTickMarket()
+        self.market.onTick()
         self.onTick()
 
     def printInfo(self):
@@ -50,24 +43,50 @@ class TraderBase:
         # positionsOpen: {positionsOpen}
         # positionsTotal: {positionsTotal}
 
-        text = self.printInfoTextFormat.format(
-            price=self.market.price,
-            ticks=self.market.ticks,
-            balance=self.balanceNow,
-            profitTotal=self.market.getProfitOpening(),
-            positionsTotal=self.market.positionsTotal(),
-            positionsHistory=self.market.closedPositions
-        ) + "\n"
-        print(text)
+        text = ""
+
+        valueDict = {
+            "price": self.market.price,
+            "ticks": self.market.ticks,
+            "balance": self.market.balanceNow,
+            "profitTotal": self.market.getProfitOpening(),
+            "positionsTotal": self.market.positionsTotal(),
+            "positionsHistory": self.market.closedPositions,
+            "winRate": self.checkWinRate()
+        }
+
+        for key in valueDict.keys():
+            textTemp = key
+            while len(textTemp) < 20:
+                textTemp += " "
+            textTemp +=": " + str(valueDict[key]) + "\n"
+            text+=textTemp
+
+        print(text + "\n")
         # self.updateTkText(text)
+
+    def checkWinRate(self):
+        sum = 0.0
+        win = 0.0
+        for pos in self.market.positions:  # type:Scripts.MarketDemo.Position
+            if not pos.open:
+                if pos.closedProfit > 0:
+                    win += 1
+                sum += 1
+        if win==0:
+            return 0
+        return  win/sum
 
     def run(self, times: int = 10000000, printMode: bool = True):
         self.runLoop = True
 
-        while self.market.ticks<times:
+        self.market.setup()
+        self.market.positionsHistoryMode = True
+
+        while self.market.ticks < times:
             for i in range(self.oneRunTicks):
                 self.runOneTick()
-            if printMode:
+            if printMode and times % 100 == 0:
                 self.printInfo()
                 time.sleep(self.waitRunStep)
 

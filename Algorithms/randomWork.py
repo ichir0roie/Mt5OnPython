@@ -12,7 +12,7 @@ class Trader(Scripts.TraderBase.TraderBase):
 
         self.lotsBase=0.01
 
-        self.takeProfit=0.5
+        self.takeProfit=0.1
         self.stopLoss=0.1
 
         self.waitCount=0
