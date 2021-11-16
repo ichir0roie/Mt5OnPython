@@ -26,7 +26,7 @@ class Analyzer:
 
     def judgeModel(self,td:Scripts.TraderBase.TraderBase):
 
-        if td.balanceNow >= td.balanceInit:
+        if td.market.balanceNow >= td.market.balanceInit:
             return True
 
         return False
